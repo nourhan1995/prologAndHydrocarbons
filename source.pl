@@ -1,0 +1,172 @@
+% Author:
+% Date: 3/3/2015
+%HELPER METHODS :-
+%#1
+%name of the branch S with N carbon atoms
+branch_name(S,N):- HS is S*2+1,
+                   atomic_list_concat([c,S,h,HS],N).
+                   
+%#2
+%L = [S,S+1,S+2...N].
+create_list(S,N, L):-
+              findall(X, between(S,N,X), L).
+
+%#3
+%Finds All possible lengths of Branched Alkanes Of size N
+possible_length(N,MiniN):-
+                          N1 is N-1,
+                          create_list(3,N1,L),
+                          member(MiniN,L).
+                          
+%#4
+%Adds Branch of Bsize Carbon atoms to the given carbon
+add_branch_to_carbon(carb(X,h,Y,Z),Bsize,New):-
+                                    branch_name(Bsize,N),
+                                    New = carb(X,NTop,Y,Z).
+add_branch_to_carbon(carb(X,Top,h,Z),Bsize,New):-
+                                    Top \= h,
+                                    branch_name(Bsize,NBottom),
+                                    New = carb(X,Top,NBottom,Z).
+                                    
+%#5
+%Form a sorted list of all possible combinations of integers that sums to N
+break_down(N,[H|T]):-
+                  create_list(1,N,L),
+                  member(H,L),
+                  Rem is N-H,
+                  break_down(Rem,T),
+                  T = [H1|T1],
+                  H =< H1.
+break_down(X,[X]):-
+                   X>0.
+
+%#6
+%adds the Branches on the Carbon atoms at given Positions
+add_branch_to_straight_chain([],[],X,X).
+add_branch_to_straight_chain(Branches,Position,OldChain,NewChain):-
+                              Branches = [Bh|Bt],
+                              Position = [Ph|Pt],
+                              add_branch_to_straight_chain(Bt,Pt,OldChain,New1),
+                              get_carbon(New1,Ph,C),
+                              add_branch_to_carbon(C,Bh,NewC),
+                              replace_carbon(New1,Ph,NewChain,NewC).
+
+%#7
+%gets the Nth element in a List
+get_carbon([H|T],1,H).
+get_carbon([H|T],N,C):-
+                      N1 is N - 1,
+                      get_carbon(T,N1,C).
+                      
+%#8
+%replaces the Nth element in a list with X
+replace_carbon([H|T],1,[X|T],X).
+replace_carbon([H|T],N,[H|T1],X):-
+                                  N1 is N-1,
+                                  replace_carbon(T,N1,T1,X).
+%#9
+%tells the index where you can add branches
+where_to_add_branch(Nlongest,Lbranches,Latoms):-
+                                                N1 is Nlongest - 1,
+                                                create_list(2,N1,Lpossible),
+                                                length(Lbranches,X),
+                                                create_atoms(X,Latoms,Lpossible),
+                                                check_number(Latoms,Latoms),
+                                                check_longest(Nlongest,Lbranches,Latoms).
+
+%#10
+%checks if number of carbon atoms where you add branches less than or equals  to 2
+check_number([],_).
+check_number([H|T],L2) :-
+                       count(H,L2,N),
+                       N =< 2,
+                       check_number(T,L2).
+%#11
+%counts the number of occurences of an element in a list
+count(_,[],0).
+count(H,[H|T],N):-
+                 count(H,T,N1),
+                 N is N1 + 1.
+count(E,[H|T],N):-
+                 E \= H,
+                 count(E,T,N).
+%#12
+%checks if putting a certain branch on a certain atom would generate a longer chain
+check_longest(_,[],[]).
+check_longest(Nlongest,LBranches,LAtoms):-
+                                          LBranches = [Hb|Tb],
+                                          LAtoms = [Ha|Ta],
+                                          nearest_end(Nlongest,Ha,Distance),
+                                          Hb =<  Distance,
+                                          check_longest(Nlongest,Tb,Ta).
+%#13
+%finds distance to nearest end
+nearest_end(N,Atom,Dis):-
+                         X is N-Atom,
+                         Y is Atom-1,
+                         minimum(X,Y,Dis).
+%#14
+%Finds minumum value of two
+minimum(X,Y,X):-
+                X < Y.
+minimum(X,Y,Y):-
+                Y =< X.
+%#15
+%Generates no of atoms where you can add branches
+create_atoms(0,[],_).
+create_atoms(N,Latoms,Lpossible):-
+                                  N > 0,
+                                  N1 is N-1,
+                                  create_atoms(N1,LAtail,Lpossible),
+                                  member(LAHead,Lpossible),
+                                  Latoms = [LAHead|LAtail].
+%#16
+%filters isomers across y-axis
+filter([],[]).
+filter([H|T1],[H|T2]):-
+                         mirror(H,Hrev),
+                         filter(T1,FT1),
+                         delete(FT1,Hrev,T2).
+%17
+%gives the mirror of a structure across y-axis
+mirror(X,X):-
+             length(X,Count),
+             Count =< 2.
+mirror([H|T],[H|T2]):-
+                 delete(T,carb(c,h,h,h),Middle),
+                 reverse(Middle,RevMiddle),
+                 add_to_end(carb(c,h,h,h),RevMiddle,T2).
+%18
+%add an element to the end of a list
+add_to_end(X,[],[X]).
+add_to_end(X,[H|T1],[H|T2]):-
+                             add_to_end(X,T1,T2).
+%MAIN METHODS
+%Part a
+%generates the straight chain alkane
+straight_chain_alkane(1,[carb(h,h,h,h)]).
+straight_chain_alkane(N,L):-
+                                N > 1,
+                                N1 is N-1,
+                                straight_chain_alkane(N1,T),
+                                T = [carb(_,_,_,X)|T1],
+                                H = carb(h,h,h,c),
+                                H1 = carb(c,h,h,X),
+                                L1 = [H1|T1],
+                                L = [H|L1].
+%Part b
+%generates branched alkane
+branched_alkane(N,BA):-
+                       possible_length(N,MiniN),
+                       Bsize is N-MiniN,
+                       break_down(Bsize,Branches),
+                       straight_chain_alkane(MiniN,Mainchain),
+                       where_to_add_branch(MiniN,Branches,Atoms),
+                       add_branch_to_straight_chain(Branches,Atoms,Mainchain,BA).
+%Part c
+%Generates the isomers
+isomers(N,A):-
+              setof(BA,N^branched_alkane(N,BA),Branched),
+              straight_chain_alkane(N,Straight),
+              Iso = [Straight|Branched],
+              filter(Iso,A).
