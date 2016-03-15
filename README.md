@@ -1,7 +1,5 @@
 # prologAndHydrocarbons
-Prolog And Hydrocarbons
-
-Project Description
+#Project Description
 Hydrocarbons are compounds composed of carbon and hydrogen. An alkane is a saturated hydrocar-
 bon. Each carbon atom is bound to the maximum number possible: Four atoms. Alkanes can have their
 atoms arranged in what is called a normal, straight-chain or unbranched way.
